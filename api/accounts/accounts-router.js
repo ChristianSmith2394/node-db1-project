@@ -1,69 +1,47 @@
 const router = require('express').Router()
-const Account = require('./accounts-model')
-const { checkAccountPayload, checkAccountNameUnique, checkAccountId } = require('./accounts-middleware')
+const Accounts = require('./accounts-model')
+const { checkAccountId, checkAccountPayload, checkAccountNameUnique } = require('./accounts-middleware')
 
-router.get('/', (req, res, next) => {
-  // DO YOUR MAGIC
-  Account.getAll()
+router.get('/', async (req, res, next) => {
+  await Accounts.getAll(req.query)
     .then(accounts => {
-      res.status(200).json(accounts)
+    res.status(200).json(accounts)
     })
-    .catch(err => {
-      res.status(400).json({ message: err })
-    })
+  .catch(next)
 })
 
-router.get('/:id', checkAccountId, (req, res, next) => {
-  const { id } = req.params;
-  Account.getById(id)
-    .then(
-      account => {
-        res.status(200).json(account)
-      }
-    )
-    .catch(err => {
-      res.status(400).json({ message: err.message })
-    })
-  // DO YOUR MAGIC
+router.get('/:id', checkAccountId, (req, res) => {
+  res.json(req.verified)
 })
 
-router.post('/', checkAccountPayload, checkAccountNameUnique, (req, res, next) => {
-  // DO YOUR MAGIC
-  Account.create(req.body)
+router.post('/', checkAccountPayload, checkAccountNameUnique, async (req, res, next) => {
+  let { name, budget } = req.body;
+  name.trim()
+  await Accounts.create({name, budget})
     .then(newAccount => {
       res.status(201).json(newAccount)
     })
-    .catch(err => {
-      res.status(400).json({ message: err.message })
-    })
+  .catch(next)
 })
 
-router.put('/:id', checkAccountId, (req, res, next) => {
-  // DO YOUR MAGIC
-  const { id } = req.params
-  Account.updateById(id, req.body)
+router.put('/:id', checkAccountId, checkAccountPayload, async (req, res, next) => {
+  await Accounts.updateById(req.params.id, req.body)
     .then(updatedAccount => {
-      res.status(200).json(updatedAccount)
+    res.status(200).json(updatedAccount)
     })
-    .catch(err => {
-      res.status(400).json({ message: err.message })
-    })
+  .catch(next)
 });
 
-router.delete('/:id', checkAccountId, (req, res, next) => {
-  // DO YOUR MAGIC
-  const { id } = req.params
-  Account.deleteById(id)
-    .then(deletedAccount => {
-      res.status(200).json(deletedAccount)
+router.delete('/:id', checkAccountId, async (req, res, next) => {
+  await Accounts.deleteById(req.params.id)
+    .then(() => {
+    res.status(200).json({message:"account deleted successfully"})
     })
-    .catch(err => {
-      res.status(400).json({ message: err.message })
-    })
+  .catch(next)
 })
 
 router.use((err, req, res, next) => { // eslint-disable-line
-  // DO YOUR MAGIC
+  res.status(err.status || 400).json({ message: err.message,})
 })
 
 module.exports = router;
